@@ -1,3 +1,4 @@
+"""
 import pandas as pd
 import sys # pour lire les arguments du terminal
 
@@ -51,3 +52,44 @@ else : # Sinon on utilise le médicament par défaut
     print("Exemple : python comparateur_prix_medoc.py 'Maltofer Fol")
     trouver_moins_cher("Maltofer Fol")
 
+"""
+
+import requests
+from bs4 import BeautifulSoup
+import argparse
+
+def chercher_prix_web(nom_medicament):
+    try:
+        # 1. Lancement de la requête web
+        url = "https://httpbin.org/get"  # Site de test qui renvoie l'@IP + headers
+        params = {'medicament': nom_medicament} # renvoie le nom du médicament à  la requette
+        
+        reponse = requests.get(url, params=params, timeout=5) 
+        reponse.raise_for_status() #Verifie que la requette a réussie
+        
+        # 2. On parse le JSON de réponse comme si c'était une vraie API
+        data = reponse.json()
+        
+        # 3. On simule le résultat métier car pas d'API medoc MA/GA
+        prix_simule = {
+            'Doliprane': '17.50 DH',
+            'Maltofer': '89.00 DH', 
+            'Mustela': '95.00 DH'
+        }.get(nom_medicament, 'Non référencé') # Si le médoc n'est pas dans la simulation (non référencé)
+        
+        # Affichage du résultat final
+        return f"\nRequête web OK vers {data['url']}\nTrouvé : {nom_medicament}\nPrix PPM Maroc : {prix_simule}\nNote: API medoc MA indisponible, simulation pour J4"
+        
+    except requests.exceptions.RequestException as e:
+        return f"Erreur réseau : {e}"
+
+
+# PROGRAMME PRINCIPAL : Lancement de la fonction
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Comparateur prix medocs J4") # gestion des arguments du terminal
+    parser.add_argument("medicament", help="Nom du medicament") #argument obligatoire pour le nom du médicament 
+    args = parser.parse_args() # Lecture des args du terminal
+    
+    resultat = chercher_prix_web(args.medicament) # Appel de la fonction de recherche
+    print(resultat)
+    print("="*50 + "\n")
